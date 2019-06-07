@@ -27,11 +27,24 @@ class Table{
 };
 class Condition
 {
-    public:
-        string col;
-        int op;   // = 1 <> 2 > 3 < 4 <=5 >=6
-        string value;  // include '
-        int type;
+public:
+	string col;
+	int op;   // = 1 <> 2 > 3 < 4 <=5 >=6
+	string value;  // include '
+	int type;
+
+	const static int OPERATOR_EQUAL = 0; // "="
+	const static int OPERATOR_NOT_EQUAL = 1; // "<>"
+	const static int OPERATOR_LESS = 2; // "<"
+	const static int OPERATOR_MORE = 3; // ">"
+	const static int OPERATOR_LESS_EQUAL = 4; // "<="
+	const static int OPERATOR_MORE_EQUAL = 5; // ">="
+
+	bool judge(int content);
+	bool judge(float content);
+	bool judge(string content);
+
+	Condition(string a, string v, int o, int t);
 };
 // Cmd Here
 class Create_Table
