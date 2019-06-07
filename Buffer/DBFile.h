@@ -7,7 +7,6 @@
 #include<iostream>
 using namespace std;
 
-//check
 class Block_Node
 {
     private:
