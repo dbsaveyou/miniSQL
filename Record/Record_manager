@@ -93,16 +93,17 @@ int RecordManager::Insert_record(Insert record)
 						block_temp = bm.getNextBlock(file_temp, block_temp);
 					}
 				}
+				return 50;//success
 			}
 			else
 			{
-				return 52;//返回一个错误码表示参数不对应
+				return 52;//num of values doesn't match
 			}
 		}
 		else
 		{
 			return 52;
-			//返回一个错误码表示参数不对应
+			//num of values doesn't match
 		}
 
 	}
@@ -150,17 +151,18 @@ int RecordManager::select_record(Select record)
 					block_temp = bm.getNextBlock(file_temp, block_temp);//继续找下一块
 				}
 			}
+			return 60; //success
 		}
 		else
 		{
-			return 52;
-			//返回一个错误码表示参数不对应
+			return 62;
+			//type of column doesn;t match
 		}
 
 	}
 	else
 	{
-		return 31;//can't find table
+		return 61;//can't find table
 	}
 
 }
@@ -231,7 +233,7 @@ int RecordManager::delete_record(Delete record)
 			{
 				if (block_temp == NULL)
 				{
-					return -1;
+					return -1;//空文件
 				}
 				if (block_temp->get_IfEnd())
 				{
@@ -246,17 +248,18 @@ int RecordManager::delete_record(Delete record)
 					block_temp = bm.getNextBlock(file_temp, block_temp);
 				}
 			}
+			return 70; //success
 		}
 		else
 		{
-			return 52;
-			//返回一个错误码表示参数不对应
+			return 72;
+			//type of column doesn;t match
 		}
 
 	}
 	else
 	{
-		return 31;//can't find table
+		return 71;//can't find table
 	}
 
 
