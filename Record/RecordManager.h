@@ -27,9 +27,6 @@ public:
 
 
 	string Get_table_file(string tableName);
-	string Get_index_file(string indexName);
-
-	void record_save(char * recordBegin, int recordSize);
 
 private:
 	int block_select(Select record, Block_Node* block);
@@ -37,6 +34,8 @@ private:
 
 	bool record_match(char * recordBegin, int recordSize, vector<Attribute> * attributeVector, vector<Condition>* conditionVector);
 	bool content_match(char * content, int type, Condition* condition);
+
+	void record_save(char * recordBegin, int recordSize);
 };
 #endif // !RECORD_H
 
