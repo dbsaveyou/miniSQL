@@ -2,7 +2,7 @@
 /*
 record need api to :
 
-1: api->tableExist(tableName) // check table exit, bool return
+1: api->Table_Exist(tableName) // check table exit, bool return
 2: api->checkattributetype(record.table_name, record.values, record.types) // check attribute, bool return
 3. api->recordSizeGet(record.table_name); //get the size of record in given table
 4. api->attributeGet(record.table_name, &attributeVector); // get attribute vector in a given table
@@ -11,7 +11,7 @@ record need api to :
 int RecordManager::Create_table(string tableName)
 {
 	//缺少检查table是否存在的部分
-	if (api->tableExist(tableName) == false)//get from api/////
+	if (api->Table_Exist(tableName) == false)//get from api/////
 	{
 		string File_name = Get_table_file(tableName);
 		FILE * f;
@@ -29,7 +29,7 @@ int RecordManager::Create_table(string tableName)
 }
 int RecordManager::Drop_table(string tableName)
 {
-	if (api->tableExist(tableName) == true)//get from api/////
+	if (api->Table_Exist(tableName) == true)//get from api/////
 	{
 		string File_name = Get_table_file(tableName);
 		bm.free_FileNode(tableName.c_str());
@@ -47,58 +47,51 @@ int RecordManager::Insert_record(Insert record)
 	//检查是否record的table是否存在
 	vector<Attribute> attr;
 	int flag = 0;
-	if (api->tableExist(record.table_name) == true)//get from api/////
+	if (api->Table_Exist(record.table_name) == true)//get from api/////
 	{
-		if (attr.size() == record.num_vaule)
+		if (api->checkattributetype(record.table_name, record.values, record.types) == true)//get from api/////
 		{
-			if (api->checkattributetype(record.table_name, record.values, record.types) == true)//get from api/////
-			{
-				File_Node * file_temp = bm.get_File(Get_table_file(record.table_name).c_str());
-				Block_Node * block_temp = bm.getBlockHead(file_temp);
-				char * addr_begin;
-				string rec = "";
-				int record_size;
+			File_Node * file_temp = bm.get_File(Get_table_file(record.table_name).c_str());
+			Block_Node * block_temp = bm.getBlockHead(file_temp);
+			char * addr_begin;
+			string rec = "";
+			int record_size;
 
-				for (int i = 0; i < record.types.size(); i++)
-				{
-					rec += record.values[i];
-					if (record.types[i] == -1)
-					{
-						record_size += sizeof(int);
-					}
-					else if (record.types[i] == 0)
-					{
-						record_size += sizeof(float);
-					}
-					else
-					{
-						record_size += sizeof(char) * record.types[i];
-					}
-				}
-
-				while (true)
-				{
-					if (block_temp == NULL) return -1;
-					if (record_size <= block_temp->get_RemainedSize())//如果剩余的插入空间不够一条新的记录插入则寻找下一个快的开始位置插入
-					{
-						addr_begin = block_temp->get_Content() + block_temp->get_UsedSize();
-						memcpy(addr_begin, rec.c_str(), record_size);//将记录存入新的位置
-						//buffer设置
-						block_temp->set_UsedSize(block_temp->get_UsedSize() + record_size);
-						block_temp->set_Dirty(true);
-						return 50;//Success
-					}
-					else
-					{
-						block_temp = bm.getNextBlock(file_temp, block_temp);
-					}
-				}
-				return 50;//success
-			}
-			else
+			for (int i = 0; i < record.types.size(); i++)
 			{
-				return 52;//num of values doesn't match
+				rec += record.values[i];
+				if (record.types[i] == -1)
+				{
+					record_size += sizeof(int);
+				}
+				else if (record.types[i] == 0)
+				{
+					record_size += sizeof(float);
+				}
+				else
+				{
+					record_size += sizeof(char) * record.types[i];
+				}
 			}
+
+			while (true)
+			{
+				if (block_temp == NULL) return -1;
+				if (record_size <= block_temp->get_RemainedSize())//如果剩余的插入空间不够一条新的记录插入则寻找下一个快的开始位置插入
+				{
+					addr_begin = block_temp->get_Content() + block_temp->get_UsedSize();
+					memcpy(addr_begin, rec.c_str(), record_size);//将记录存入新的位置
+					//buffer设置
+					block_temp->set_UsedSize(block_temp->get_UsedSize() + record_size);
+					block_temp->set_Dirty(true);
+					return 50;//Success
+				}
+				else
+				{
+					block_temp = bm.getNextBlock(file_temp, block_temp);
+				}
+			}
+			return 50;//success
 		}
 		else
 		{
@@ -109,7 +102,7 @@ int RecordManager::Insert_record(Insert record)
 	}
 	else
 	{
-		return 31;//can't find table
+		return 51;//can't find table
 	}
 
 }
@@ -117,7 +110,7 @@ int RecordManager::Insert_record(Insert record)
 int RecordManager::select_record(Select record)
 {
 	//检查是否select的table是否存在
-	if (api->tableExist(record.table_name) == true)//get from api/////
+	if (api->Table_Exist(record.table_name) == true)//get from api/////
 	{
 		vector<string>values;
 		vector<int>types;
@@ -156,7 +149,7 @@ int RecordManager::select_record(Select record)
 		else
 		{
 			return 62;
-			//type of column doesn;t match
+			//type of column doesn't match
 		}
 
 	}
@@ -212,7 +205,7 @@ int RecordManager::block_select(Select record, Block_Node * block)
 int RecordManager::delete_record(Delete record)
 {
 	//检查是否select的table是否存在
-	if (api->tableExist(record.table_name) == true)//get from api///
+	if (api->Table_Exist(record.table_name) == true)//get from api///
 	{
 		vector<string>values;
 		vector<int>types;
@@ -321,11 +314,6 @@ string RecordManager::Get_table_file(string tableName)
 {
 	string tmp = "";
 	return "INDEX_FILE_" + tableName;
-}
-string RecordManager::Get_index_file(string indexName)
-{
-	string tmp = "";
-	return "INDEX_FILE_" + indexName;
 }
 
 bool RecordManager::record_match(char * recordBegin, int recordSize, vector<Attribute> * attributeVector, vector<Condition> * conditionVector)
