@@ -821,7 +821,7 @@ void BPlusTree<KeyType>::WriteDisk()
 
 
 
-/*test
+
 int main()
 {    
     
@@ -851,4 +851,3 @@ int main()
         node.remove(i+1);
     */
 }
-*/
