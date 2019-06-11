@@ -29,7 +29,7 @@ class Condition
 {
 public:
 	string col;
-	int op;   // = 1 <> 2 > 3 < 4 <=5 >=6
+	int op;   // = 0 <> 1 > 2 < 3 <=4 >=5
 	string value;  // include '
 	int type;
 
@@ -75,7 +75,7 @@ class Insert
 {
     public:
         string table_name;
-        int num_vaule;
+        int num_value;
         vector<string> values;
         vector<int> types;
 };

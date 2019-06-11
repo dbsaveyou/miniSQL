@@ -1,5 +1,4 @@
 # CATALOG API需求和定义
-
 已经定义的buffer接口可以实现CATALOG全部功能
 
 ## CATALOG对外提供接口
