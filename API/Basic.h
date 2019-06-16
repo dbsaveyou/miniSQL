@@ -4,7 +4,12 @@
 #include<string>
 class Attribute{
     public:
-        Attribute();
+        Attribute(){
+            AttributeType = -2;
+            Unique = false;
+            primarykey = false;
+            withindex = false;
+        }
         ~Attribute();
 
         string AttributeName;
@@ -97,13 +102,13 @@ class Trans_in
 {
     public:
         int id;
-        Create_Table *create_table;     // id=0
-        Drop_Table *drop_table;         // id=1
-        Create_Index *create_index;     // id=2
-        Drop_Index *drop_index;         // id=3
-        Insert *insert;                 // id=4
-        Select *select;                 // id=5
-        Delete *deletee;                // id=6
+        Create_Table create_table;     // id=0
+        Drop_Table drop_table;         // id=1
+        Create_Index create_index;     // id=2
+        Drop_Index drop_index;         // id=3
+        Insert insert;                 // id=4
+        Select select;                 // id=5
+        Delete deletee;                // id=6
         Trans_in(int code=-1):id(code){}
         ~Trans_in(){}
 }

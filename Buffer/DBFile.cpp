@@ -121,28 +121,28 @@ void Block_Node::WriteBack()
 	else
 	{
 		FILE *fileHandle = NULL;
-		if (NULL != (fileHandle = fopen(filename, "rb+")))
-		{
-			if (0 == fseek(fileHandle, offsetnum*BLOCK_SIZE, 0))
-			{
-				if (1 != fwrite(address, used_size + sizeof(size_t), 1, fileHandle))
-				{
-					cout << "Problem writing the file " << filename << " in writing back." << endl;
-					exit(1);
-				}
-				else
-				{
-					cout << "Problem writing the file " << filename << " in writing back." << endl;
-					exit(1);
-				}
-				fclose(fileHandle);
-			}
-			else
-			{
-				cout << "Problem writing the file " << filename << " in writing back." << endl;
-				exit(1);
-			}
-		}
+        if((fileHandle = fopen(filename, "rb+")) != NULL)
+        {
+            if(fseek(fileHandle, this->offsetnum*BLOCK_SIZE, 0) == 0)
+            {
+                if(fwrite(this->address, this->used_size, 1, fileHandle) != 1)
+                {
+                    printf("Problem writing the file %s in writtenBackToDisking",filename);
+                    exit(1);
+                }
+            }
+            else
+            {
+                printf("Problem seeking the file %s in writtenBackToDisking",filename);
+                exit(1);
+            }
+            fclose(fileHandle);
+        }
+        else
+        {
+            printf("Problem opening the file %s in writtenBackToDisking",filename);
+            exit(1);
+        }
 	}
 }
 	char *Block_Node::get_Content()
