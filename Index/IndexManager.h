@@ -6,6 +6,7 @@
 #include <map>
 #include <sstream>
 #include "bplusself.h"
+#include "basic.h"
 using namespace std;
 
 class IndexInfo
@@ -27,8 +28,8 @@ private:
     typedef map<string,BPlusTree<string> *> stringMap;
     typedef map<string,BPlusTree<float> *> floatMap;
     //
-    int static const TYPE_FLOAT = Attribute::TYPE_FLOAT;
-    int static const TYPE_INT = Attribute::TYPE_INT;
+    int static const TYPE_FLOAT = -1;
+    int static const TYPE_INT = 0;
     // other values mean the size of the char.Eg, 4 means char(4);
     
     API *api; // to call the functions of API
@@ -52,9 +53,14 @@ public:
     IndexManager(API *api);
     ~IndexManager();
     void createIndex(string filePath,int type);
-    void dropIndex(string filePath,int type);
-    int searchIndex(string filePath,string key,int type);
+    void dropIndex(string filePath,int type);               //need type
+    int searchIndex(string filePath,string key,int type);       
     void insertIndex(string filePath,string key,int blockOffset,int type);
     void deleteIndex(string filePath, string key,int type);
+
+    void Create_Index(Create_Index tmp2);
+    void Delete_index(Drop_index tmp3);
+
+
 };
 #endif
