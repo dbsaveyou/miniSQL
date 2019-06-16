@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
+#include "DBFile.h"
 using namespace std;
 
 template <typename KeyType>
@@ -386,28 +387,6 @@ bool BPlusTree<KeyType>::search(Node TestNode, KeyType key, AimNode& AN)
 }
 
 
-/*
-template <typename KeyType>
-bool BPlusTree<KeyType>::find(Node TestNode, KeyType key, AimNode& AN)
-{
-    int index = index_test = 0;
-    while (TestNode->search(key, index))
-    {
-        if (TestNode->isLeaf)
-        {
-            AN.ANode = TestNode;
-            AN->index = index;
-            return true;
-        }
-        TestNode = TestNode->children[index+1];
-        index_test = index;
-
-        if (!TestNode->search(key, index_test))
-            break;   
-    }
-}
-*/
-
 
 template <typename KeyType>
 bool BPlusTree<KeyType>::insert(KeyType key,int val)
@@ -753,15 +732,15 @@ bool BPlusTree<KeyType>::judge(Node TestNode)
 
 
 template <typename KeyType>
-void BPlusTree<KeyType>::ReadDiskNode(blockNode* btmp)
+void BPlusTree<KeyType>::ReadDiskNode(Block_Node* btmp)
 {
-    char* index = bm.getindex(*btmp);
+    char* index = (*btmp).get_Content();
     char* value = index[keySize];
     KeyType key;
     int value;
     int valueSize = sizeof(int);
 
-    while(value - bm.getindex(*btmp) < bm.getSize(*btmp))
+    while(value - (*btmp).get_Content() < bm.getSize(*btmp))
     {
         key = *(KeyType*)index;
         value = *(int*)value;
@@ -775,8 +754,8 @@ void BPlusTree<KeyType>::ReadDiskNode(blockNode* btmp)
 template <typename KeyType>
 void BPlusTree<KeyType>::ReadDiskAll()
 {
-    file = bm.getFile(fileName.c_str());    ///?
-    blockNode* btmp = bm.getBlockHead(file);    ///?
+    File_Node* file = bm.get_File(tablename.c_str());   
+    Block_Node* btmp = bm.getBlockHead(file);    
     while (btmp!=NULL)
     {   
         readFromDisk(btmp);
@@ -790,21 +769,21 @@ void BPlusTree<KeyType>::ReadDiskAll()
 template <class KeyType>
 void BPlusTree<KeyType>::WriteDisk()
 {
-    blockNode* btmp = bm.getBlockHead(file);
+    Block_Node* btmp = bm.getBlockHead(file);
     Node ntmp = this->LeafHead;
     int valueSize = sizeof(int);
     while(ntmp != NULL)
     {
-        bm.set_usingSize(*btmp, 0);
-        bm.set_dirty(*btmp);
-        for(int i = 0;i < ntmp->count;i ++)
+        (*btmp).set_usingSize(0);
+        (*btmp).set_Dirty(1);
+        for(int i = 0;i < ntmp->count; i++)
         {
             char* key = (char*)&(ntmp->keys[i]);
             char* value = (char*)&(ntmp->vals[i]);
-            memcpy(bm.get_content(*btmp)+bm.get_usingSize(*btmp),key,keySize);
-            bm.set_usingSize(*btmp, bm.get_usingSize(*btmp) + keySize);
-            memcpy(bm.get_content(*btmp)+bm.get_usingSize(*btmp),value,valueSize);
-            bm.set_usingSize(*btmp, bm.get_usingSize(*btmp) + valueSize);
+            memcpy((*btmp).get_Content()+(*btmp).get_UsedSize(),key,keySize);
+            bm.set_usingSize(*btmp, (*btmp).get_UsedSize() + keySize);
+            memcpy((*btmp).get_Content()+(*btmp).get_UsedSize(),value,valueSize);
+            bm.set_usingSize(*btmp, (*btmp).get_UsedSize() + valueSize);
         }
         
         btmp = bm.getNextBlock(file, btmp);
@@ -814,8 +793,8 @@ void BPlusTree<KeyType>::WriteDisk()
     {
         if(btmp->ifbottom)
             break;
-        bm.set_usingSize(*btmp, 0);
-        bm.set_dirty(*btmp);
+        (*btmp).set_usingSize(0);
+        (*btmp).set_dirty(false);
         btmp = bm.getNextBlock(file, btmp);
     }
     
