@@ -1,12 +1,18 @@
 #ifndef __BPlusTree__
 #define __BPlusTree__
+
 #include <iostream>
 #include <vector>
 #include <stdio.h>
 #include <string.h>
 #include <string>
-#include "DBFile.h"
+#include <typeinfo>
+#include "BufferManager.h"
+/* #include "DBFile.h" */
 using namespace std;
+
+
+static BufferManager bm;
 
 template <typename KeyType>
 class TreeNode
@@ -29,9 +35,9 @@ public:
     bool insert(KeyType key, int val);            //insert on the leaf
     bool remove(KeyType key);
     TreeNode* splite(KeyType& key);
-    bool reset_keys(KeyType key, int index);
-    bool reset_vals(int val, int index);
-    bool reset_children(TreeNode* newchild, int index);
+    void reset_keys(KeyType key, int index);
+    void reset_vals(int val, int index);
+    void reset_children(TreeNode* newchild, int index);
 };
 
 
@@ -53,17 +59,17 @@ public:
     string filePath;
     Node root;
     Node LeafHead; // the head of the leaf node
-    BPlusTree(int degree, int KeySize, string filePath);
+    BPlusTree(string filePath, int KeySize, int degree);
     ~BPlusTree();
     
-    void ReadDiskNode(blockNode* btmp);
+    void ReadDiskNode(Block_Node* btmp);
     void ReadDiskAll();
     void WriteDisk();
+    void DropDisk();
 
-    
     void init_tree();
+    int search(KeyType key);
     bool search(Node TestNode, KeyType key, AimNode& AN);           // search the value of specific key
-    bool find(Node TestNode, KeyType key, AimNode& AN);         
     bool insert(KeyType key,int val);
     bool remove(KeyType key);
     bool AdjustAfterInsert(Node TestNode);
@@ -75,7 +81,7 @@ public:
 
 
 template <typename KeyType>
-TreeNode < KeyType>::TreeNode(int degree, bool isLeaf): count(0), Parent(NULL), NextLeaf(NULL), degree(degree), isLeaf(isLeaf) 
+TreeNode < KeyType>::TreeNode(int degree, bool isLeaf): count(0), Parent(NULL), NextLeaf(NULL), degree(degree), isLeaf(isLeaf)
 {
     for (int i=0; i < degree; i++)
     {
@@ -90,16 +96,19 @@ template <typename KeyType>
 TreeNode <KeyType>::~TreeNode(){}
 
 
+
 template <typename KeyType>
-bool TreeNode<KeyType>::search(KeyType key, int& index) 
+bool TreeNode<KeyType>::search(KeyType key, int& index)
 {
     if (count == 0)
         return false;
+    /*
     if (key == 0)
     {
         index = count-1;
         return true;
     }
+    */
     else if (keys[count-1]<key)
     {
         index=count;
@@ -125,7 +134,7 @@ bool TreeNode<KeyType>::search(KeyType key, int& index)
                 left = pos;
             else if(keys[pos] > key)
                 right = pos;
-        }    
+        }
         if(keys[left] >= key)
         {
             index = left;
@@ -148,12 +157,12 @@ bool TreeNode<KeyType>::search(KeyType key, int& index)
 
 
 template <typename KeyType>
-bool TreeNode<KeyType>::insert(KeyType key, int val)        //just push the key and val into leaf and without considering 
+bool TreeNode<KeyType>::insert(KeyType key, int val)        //just push the key and val into leaf and without considering
 {
     if (!this->isLeaf)
     {
         cout << "Error:This is not a leaf" << endl;
-        exit(3);   
+        exit(3);
     }
 
     if (count == 0)
@@ -162,7 +171,7 @@ bool TreeNode<KeyType>::insert(KeyType key, int val)        //just push the key 
         this->vals[0] = val;
         this->count = 1;
     }
-    else 
+    else
     {
         int index = 0;
         if (this->search(key, index))
@@ -187,7 +196,7 @@ bool TreeNode<KeyType>::insert(KeyType key, int val)        //just push the key 
 
 
 template <typename KeyType>
-bool TreeNode<KeyType>::insert(KeyType key)                
+bool TreeNode<KeyType>::insert(KeyType key)
 {
     if (count == 0)
     {
@@ -196,7 +205,7 @@ bool TreeNode<KeyType>::insert(KeyType key)
     }
     else
     {
-        int index = 0; 
+        int index = 0;
         if (search(key, index))
         {
             cout << "Error:In insert(Keytype &key),key has already in the tree!" << endl;
@@ -207,11 +216,11 @@ bool TreeNode<KeyType>::insert(KeyType key)
             for(int i = count;i > index;i --)
                 this->keys[i] = this->keys[i-1];
             this->keys[index] = key;
-            
+
             for(int i = count + 1;i > index+1;i --)
                 this->children[i] = this->children[i-1];
             this->children[index+1] = NULL; // this child will link to another node
-            
+
             this->count++;
         }
     }
@@ -297,37 +306,37 @@ TreeNode<KeyType>* TreeNode<KeyType>::splite(KeyType& key)
         this->count = miniumsize;
         newNode->count = miniumsize;
     }
-    
+
     return newNode;
 }
 
 
 template <typename KeyType>
-bool TreeNode<KeyType>::reset_children(TreeNode* newchild, int index)
+void TreeNode<KeyType>::reset_children(TreeNode* newchild, int index)
 {
     children[index] = newchild;
 }
 
 
 template <typename KeyType>
-bool TreeNode<KeyType>::reset_keys(KeyType key, int index)
+void TreeNode<KeyType>::reset_keys(KeyType key, int index)
 {
     keys[index] = key;
 }
 
 
 template <typename KeyType>
-bool TreeNode<KeyType>::reset_vals(int val, int index)
+void TreeNode<KeyType>::reset_vals(int val, int index)
 {
     vals[index] = val;
 }
 
 
 template <typename KeyType>
-BPlusTree<KeyType>::BPlusTree(int degree, int KeySize, string filePath):KeyNum(0),height(0),NodeNum(0),root(NULL),LeafHead(NULL),degree(degree), KeySize(KeySize), filePath(filePath)
+BPlusTree<KeyType>::BPlusTree(string filePath, int KeySize, int degree):KeyNum(0),height(0),NodeNum(0),root(NULL),LeafHead(NULL),degree(degree), KeySize(KeySize), filePath(filePath)
 {
     init_tree();
-//    readFromDiskAll();
+    ReadDiskAll();
 }
 
 
@@ -350,9 +359,19 @@ void BPlusTree<KeyType>::init_tree()
     this->degree = degree;
     this->KeyNum = 0;
     this->LeafHead = root;
-    
+
 }
 
+template <typename KeyType>
+int BPlusTree<KeyType>::search(KeyType key)
+{
+    if(!root) return -1;
+    AimNode AN;
+    if (search(root, key, AN))
+        return -128; // Don't find the key in the tree;
+    else
+        return AN.ANode->vals[AN.index];
+}
 
 template <typename KeyType>
 bool BPlusTree<KeyType>::search(Node TestNode, KeyType key, AimNode& AN)
@@ -364,7 +383,7 @@ bool BPlusTree<KeyType>::search(Node TestNode, KeyType key, AimNode& AN)
         {
             AN.ANode = TestNode;
             AN.index = index;
-            return true; 
+            return true;
         }
         TestNode = TestNode->children[index+1];
         while (!TestNode->isLeaf)
@@ -373,7 +392,7 @@ bool BPlusTree<KeyType>::search(Node TestNode, KeyType key, AimNode& AN)
         AN.index = 0;
         return true;
     }
-    else 
+    else
     {
         if(TestNode->isLeaf)
         {
@@ -382,7 +401,7 @@ bool BPlusTree<KeyType>::search(Node TestNode, KeyType key, AimNode& AN)
             return false;
         }
         else
-            search(TestNode->children[index],key,AN);
+            return search(TestNode->children[index],key,AN);
     }
 }
 
@@ -392,6 +411,14 @@ template <typename KeyType>
 bool BPlusTree<KeyType>::insert(KeyType key,int val)
 {
     if (!root) init_tree();
+    if (KeyNum == 0 && NodeNum == 1)
+    {
+        root->keys[0] = key;
+        root->vals[0] = val;
+        root->count++;
+        KeyNum++;
+        return true;
+    }
 
     AimNode AN;
     if (search(root, key, AN))
@@ -400,7 +427,7 @@ bool BPlusTree<KeyType>::insert(KeyType key,int val)
         exit(3);
         return false;
     }
-    else 
+    else
     {
         AN.ANode->insert(key, val);
         if (AN.ANode->count == degree)
@@ -414,12 +441,12 @@ bool BPlusTree<KeyType>::insert(KeyType key,int val)
 template <typename KeyType>
 bool BPlusTree<KeyType>::remove(KeyType key)
 {
-    if (!root) 
+    if (!root)
     {
         cout << "Error:in delete key: No nodes in the tree!" << endl;
         exit(3);
     }
-    
+
     AimNode AN;
     if (!search(root, key, AN))
     {
@@ -427,28 +454,28 @@ bool BPlusTree<KeyType>::remove(KeyType key)
         exit(3);
         return false;
     }
-    else 
+    else
     {
         if (AN.ANode->Parent == NULL)
         {
             AN.ANode->remove(key);
             KeyNum--;
             return AdjustAfterDelete(AN.ANode);
-        }    
+        }
         else if (AN.index == 0 && AN.ANode != LeafHead)
         {
             int index = 0;
             Node TestNode = AN.ANode->Parent;
             while (!(TestNode->search(key, index)))
                 TestNode = TestNode->Parent;
-            
+
             //suppose the degree is bigger than 2
             TestNode->reset_keys(AN.ANode->keys[1], index);
             AN.ANode->remove(key);
             KeyNum--;
             return AdjustAfterDelete(AN.ANode);
         }
-        else 
+        else
         {
             AN.ANode->remove(key);
             KeyNum--;
@@ -479,7 +506,7 @@ bool BPlusTree<KeyType>::AdjustAfterInsert(Node TestNode)
         root->insert(key);
         root->reset_children(TestNode, 0);
         root->reset_children(NewNode, 1);
-        
+
         NewNode->Parent = root;
         TestNode->Parent = root;
         root->isLeaf = 0;
@@ -487,7 +514,7 @@ bool BPlusTree<KeyType>::AdjustAfterInsert(Node TestNode)
         NodeNum++;
         return true;
     }
-    else 
+    else
     {
         Node ParentNode = TestNode->Parent;
         ParentNode->insert(key);
@@ -508,7 +535,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
     if (judge(TestNode))
         return true;
 
-    else 
+    else
     {
         if (TestNode->Parent == NULL)
         {
@@ -516,7 +543,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
                 return true;
             else if (TestNode->isLeaf)
                 dropTree(root);
-            else 
+            else
             {
                 root = TestNode->children[0];
                 root->Parent = NULL;
@@ -543,7 +570,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
                     ParentNode->reset_vals(TestNode->vals[0], index);
                     return true;
                 }
-                else 
+                else
                 {
                     ParentNode->remove(ParentNode->keys[index]);
                     for (int i=0; i<TestNode->count; i++)
@@ -571,7 +598,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
                     ParentNode->reset_vals(SiblingNode->vals[0], index);
                     return true;
                 }
-                else 
+                else
                 {
                     ParentNode->children[0] == TestNode ? ParentNode->remove(ParentNode->keys[0]) : ParentNode->remove(ParentNode->keys[index+1]);
                     for (int i=0; i<SiblingNode->count; i++)
@@ -591,7 +618,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
                 }
             }
         }
-        else 
+        else
         {
             Node ParentNode = TestNode->Parent, SiblingNode = NULL, IndexNode = TestNode->children[0];
             int index = 0;
@@ -617,7 +644,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
                     ParentNode->reset_keys(TestNode->children[0]->keys[0], index);
                     return true;
                 }
-                else 
+                else
                 {
                     SiblingNode->reset_keys(ParentNode->keys[index], SiblingNode->count);
                     SiblingNode->count++;
@@ -639,7 +666,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
                     return AdjustAfterDelete(ParentNode);
                 }
             }
-            else 
+            else
             {
                 (ParentNode->children[0] == TestNode) ? SiblingNode = ParentNode->children[1] : SiblingNode = ParentNode->children[index+2];
                 if (SiblingNode->count > mininumsize-1)
@@ -657,7 +684,7 @@ bool BPlusTree<KeyType>::AdjustAfterDelete(Node TestNode)
                     ParentNode->reset_keys(SiblingNode->children[0]->keys[0], index);
                     return true;
                 }
-                else 
+                else
                 {
                     TestNode->reset_keys(ParentNode->keys[index], TestNode->count);
 
@@ -711,7 +738,7 @@ bool BPlusTree<KeyType>::judge(Node TestNode)
         {
             return false;
         }
-        else 
+        else
         {
             return true;
         }
@@ -722,9 +749,10 @@ bool BPlusTree<KeyType>::judge(Node TestNode)
             if(!judge(TestNode->children[i]))
                 return false;
     }
-    if (TestNode->count == 0 || TestNode->keys[TestNode->count-1] == 0)
+    //if (TestNode->count == 0 || TestNode->keys[TestNode->count-1] == 0)
+    if (TestNode->count == 0)
         return false;
-    else 
+    else
         return true;
 }
 
@@ -735,101 +763,85 @@ template <typename KeyType>
 void BPlusTree<KeyType>::ReadDiskNode(Block_Node* btmp)
 {
     char* index = (*btmp).get_Content();
-    char* value = index[keySize];
+    char* value = index + KeySize;
     KeyType key;
-    int value;
+    int keyvalue;
     int valueSize = sizeof(int);
 
-    while(value - (*btmp).get_Content() < bm.getSize(*btmp))
+    while(value - (*btmp).get_Content() < (*btmp).get_UsedSize())
     {
         key = *(KeyType*)index;
-        value = *(int*)value;
-        insert(key, value);
-        value += keySize + valueSize;
-        index += keySize + valueSize;
+        keyvalue = *(int*)value;
+        insert(key, keyvalue);
+        value += KeySize + valueSize;
+        index += KeySize + valueSize;
     }
-    
 }
 
 template <typename KeyType>
 void BPlusTree<KeyType>::ReadDiskAll()
 {
-    File_Node* file = bm.get_File(tablename.c_str());   
-    Block_Node* btmp = bm.getBlockHead(file);    
+    File_Node* file = bm.get_File(filePath.c_str());
+    Block_Node* btmp = bm.getBlockHead(file);
     while (btmp!=NULL)
-    {   
-        readFromDisk(btmp);
-        if(btmp->ifbottom) break;
+    {
+        ReadDiskNode(btmp);
+        if(btmp->get_IfEnd()) break;
         btmp = bm.getNextBlock(file, btmp);
     }
-
 }
-
 
 template <class KeyType>
 void BPlusTree<KeyType>::WriteDisk()
 {
+    /* 
+    string tablename = filePath.c_str(); 
+    tablename = "index_" + tablename;
+    if (typeid(tablename) == typeid(int))
+        tablename = "int_" + tablename;
+    else if (typeid(tablename) == typeid(float))
+        tablename = "float_" + tablename;
+    else if (typeid(tablename) == typeid(string))
+        tablename = "string_" + tablename;
+    else {};
+    */  
+    File_Node* file = bm.get_File(filePath.c_str());
     Block_Node* btmp = bm.getBlockHead(file);
     Node ntmp = this->LeafHead;
     int valueSize = sizeof(int);
     while(ntmp != NULL)
     {
-        (*btmp).set_usingSize(0);
+        (*btmp).set_UsedSize(0);
         (*btmp).set_Dirty(1);
-        for(int i = 0;i < ntmp->count; i++)
+        for (int i = 0; i < ntmp->count; i++)
         {
             char* key = (char*)&(ntmp->keys[i]);
             char* value = (char*)&(ntmp->vals[i]);
-            memcpy((*btmp).get_Content()+(*btmp).get_UsedSize(),key,keySize);
-            bm.set_usingSize(*btmp, (*btmp).get_UsedSize() + keySize);
+            memcpy((*btmp).get_Content()+(*btmp).get_UsedSize(),key,KeySize);
+            (*btmp).set_UsedSize((*btmp).get_UsedSize() + KeySize);
             memcpy((*btmp).get_Content()+(*btmp).get_UsedSize(),value,valueSize);
-            bm.set_usingSize(*btmp, (*btmp).get_UsedSize() + valueSize);
+            (*btmp).set_UsedSize((*btmp).get_UsedSize() + valueSize);
         }
-        
+
         btmp = bm.getNextBlock(file, btmp);
         ntmp = ntmp->nextLeafNode;
     }
     while(1)// delete the empty node
     {
-        if(btmp->ifbottom)
+        if(btmp->get_IfEnd())
             break;
-        (*btmp).set_usingSize(0);
-        (*btmp).set_dirty(false);
+        (*btmp).set_UsedSize(0);
+        (*btmp).set_Dirty(false);
         btmp = bm.getNextBlock(file, btmp);
     }
-    
 }
+
+template <class KeyType>
+void BPlusTree<KeyType>::DropDisk()
+{
+
+};
 
 #endif
 
-/*
-int main()
-{    
-    
-    BPlusTree<int> tree(3,4,"a");
-    for (int i=0; i<10; i++)
-        tree.insert(1+i,0);
 
-
-
-    for (int i=0; i<10; i++)
-        tree.remove(i+1);
-    /*
-    BPlusTree<int> tree(3,4,"a");
-    for (int i=0; i<10; i++)
-        tree.insert(10-i,0);
-
-
-
-    for (int i=0; i<10; i++)
-        tree.remove(10-i);
-    
-    /*
-    TreeNode<int> node(3, 1);
-    for (int i=0; i<20; i++)
-        node.insert(i+1, 0);
-    for (int i=0; i<20; i++)
-        node.remove(i+1);
-    */
-
-//}
