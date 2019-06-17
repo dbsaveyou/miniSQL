@@ -44,6 +44,9 @@ public:
     void createIndex(string filePath,int type);
     void dropIndex(string filePath,int type);               //need type
     int searchIndex(string filePath,string key,int type);
+    vector<int> searchIndexLeft(string filePath, string key, int type);
+    vector<int> searchIndexRight(string filePath, string key, int type);
+    
     void insertIndex(string filePath,string key,int blockOffset,int type);
     void deleteIndex(string filePath, string key,int type);
     int getDegree(int type);
