@@ -141,6 +141,95 @@ int IndexManager::searchIndex(string filePath,string key,int type)
     }
 }
 
+vector<int> IndexManager::searchIndexLeft(string filePath, string key, int type)
+{
+    setKey(key,type);
+    vector<int> result;
+    if (type == TYPE_INT)
+    {
+        intMap::iterator Intelement = indexIntMap.find(filePath);
+        if (Intelement == indexIntMap.end())
+        {
+            cout <<"Error:in search index(int), no index " << filePath << " exist" << endl;
+            return result;
+        }
+        else
+        {
+            return Intelement->second->searchIndexLeft(keyTmps.intTmp);
+        }
+    }
+    else if (type == TYPE_FLOAT)
+    {
+        floatMap::iterator Floatelement = indexFloatMap.find(filePath);
+        if (Floatelement == indexFloatMap.end())
+        {
+            cout <<"Error:in search index(float), no index " << filePath << " exist" << endl;
+            return result;
+        }
+        else
+        {
+            return Floatelement->second->searchIndexLeft(keyTmps.floatTmp);
+        }
+    }
+    else
+    {
+        stringMap::iterator Stringelement = indexStringMap.find(filePath);
+        if (Stringelement == indexStringMap.end())
+        {
+            cout <<"Error:in search index(string), no index " << filePath << " exist" << endl;
+            return result;
+        }
+        else
+        {
+            return Stringelement->second->searchIndexLeft(keyTmps.stringTmp);
+        }
+    }
+}
+vector<int> IndexManager::searchIndexRight(string filePath, string key, int type)
+{
+    setKey(key,type);
+    vector<int> result;
+    if (type == TYPE_INT)
+    {
+        intMap::iterator Intelement = indexIntMap.find(filePath);
+        if (Intelement == indexIntMap.end())
+        {
+            cout <<"Error:in search index(int), no index " << filePath << " exist" << endl;
+            return result;
+        }
+        else
+        {
+            return Intelement->second->searchIndexRight(keyTmps.intTmp);
+        }
+    }
+    else if (type == TYPE_FLOAT)
+    {
+        floatMap::iterator Floatelement = indexFloatMap.find(filePath);
+        if (Floatelement == indexFloatMap.end())
+        {
+            cout <<"Error:in search index(float), no index " << filePath << " exist" << endl;
+            return result;
+        }
+        else
+        {
+            return Floatelement->second->searchIndexRight(keyTmps.floatTmp);
+        }
+    }
+    else
+    {
+        stringMap::iterator Stringelement = indexStringMap.find(filePath);
+        if (Stringelement == indexStringMap.end())
+        {
+            cout <<"Error:in search index(string), no index " << filePath << " exist" << endl;
+            return result;
+        }
+        else
+        {
+            return Stringelement->second->searchIndexRight(keyTmps.stringTmp);
+        }
+    }
+}
+
 
 void IndexManager::insertIndex(string filePath,string key,int blockOffset,int type)
 {
