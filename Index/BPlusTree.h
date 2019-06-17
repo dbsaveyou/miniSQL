@@ -7,12 +7,14 @@
 #include <string.h>
 #include <string>
 #include <typeinfo>
+#include <math.h>
 #include "BufferManager.h"
 /* #include "DBFile.h" */
 using namespace std;
 
 
 static BufferManager bm;
+int inline floattoint(float a){return ceil(double(a)*1000000);}
 
 template <typename KeyType>
 class TreeNode
@@ -69,6 +71,8 @@ public:
 
     void init_tree();
     int search(KeyType key);
+    vector<int> searchIndexRight(KeyType key);
+    vector<int> searchIndexLeft(KeyType key);
     bool search(Node TestNode, KeyType key, AimNode& AN);           // search the value of specific key
     bool insert(KeyType key,int val);
     bool remove(KeyType key);
@@ -109,49 +113,99 @@ bool TreeNode<KeyType>::search(KeyType key, int& index)
         return true;
     }
     */
-    else if (keys[count-1]<key)
+    /* 
+    if (typeid(key)==typeid(float))
     {
-        index=count;
-        return false;
-    }
-    else if (keys[0]>key)
-    {
-        index = 0;
-        return false;
-    }
-    else //binary search
-    {
-        int left = 0, pos = 0, right = count - 1;
-        while (right>left+1)
+        float e = 0.00001;
+        if (key[count-1]<float(key)+e)
         {
-            pos = (right + left) / 2;
-            if(keys[pos] == key)
-            {
-                index = pos;
-                return true;
-            }
-            else if(keys[pos] < key)
-                left = pos;
-            else if(keys[pos] > key)
-                right = pos;
+            index=count;
+            return false;   
         }
-        if(keys[left] >= key)
+         else if (keys[0]>float(key)+e)
         {
-            index = left;
-            return (keys[left] == key);
-        }
-        else if(keys[right] >= key)
-        {
-            index = right;
-            return (keys[right] == key);
-        }
-        else if(keys[right] < key)
-        {
-            index = right++;
+            index = 0;
             return false;
         }
+        else //binary search
+        {
+            int left = 0, pos = 0, right = count - 1;
+            while (right>left+1)
+            {
+                pos = (right + left) / 2;
+                if(keys[pos] - float(key) < e)
+                {
+                    index = pos;
+                    return true;
+                }
+                else if(keys[pos] < float(key) + e)
+                    left = pos;
+                else if(keys[pos] > float(key) + e)
+                    right = pos;
+            }
+            if(keys[left] >= float(key) - e)
+            {
+                index = left;
+                return (keys[pos] - float(key) < e);
+            }
+            else if(keys[right] >= float(key) - e)
+            {
+                index = right;
+                return (keys[pos] - float(key) < e);
+            }
+            else if(keys[right] < float(key) - e)
+            {
+                index = right++;
+                return false;
+            }
+        }
     }
-
+    */
+    else
+    {
+        if (keys[count-1]<key)
+        {
+            index=count;
+            return false;
+        }
+        else if (keys[0]>key)
+        {
+            index = 0;
+            return false;
+        }
+        else //binary search
+        {
+            int left = 0, pos = 0, right = count - 1;
+            while (right>left+1)
+            {
+                pos = (right + left) / 2;
+                if(keys[pos] == key)
+                {
+                    index = pos;
+                    return true;
+                }
+                else if(keys[pos] < key)
+                    left = pos;
+                else if(keys[pos] > key)
+                    right = pos;
+            }
+            if(keys[left] >= key)
+            {
+                index = left;
+                return (keys[left] == key);
+            }
+            else if(keys[right] >= key)
+            {
+                index = right;
+                return (keys[right] == key);
+            }
+            else if(keys[right] < key)
+            {
+                index = right++;
+                return false;
+            }
+        }
+    }
     return false;
 }
 
@@ -367,11 +421,56 @@ int BPlusTree<KeyType>::search(KeyType key)
 {
     if(!root) return -1;
     AimNode AN;
-    if (search(root, key, AN))
-        return -128; // Don't find the key in the tree;
+    if (!search(root, key, AN))
+        return -1; // Don't find the key in the tree;
     else
         return AN.ANode->vals[AN.index];
 }
+
+template <typename KeyType>
+vector<int> BPlusTree<KeyType>::searchIndexRight(KeyType key)
+{
+    vector<int> result;
+    if(!root) return result;
+    AimNode AN;
+    if (!search(root, key, AN))
+        return result; // Don't find the key in the tree;
+    else
+    {
+        while (AN.ANode!=NULL)
+        {
+            for (int i=AN.index; i<AN.ANode->count; i++)
+                result.emplace_back(AN.ANode->vals[i]);
+            AN.index = 0;
+            AN.ANode = AN.ANode->NextLeaf;
+        }
+    }    
+    return result;     
+}
+template <typename KeyType>
+vector<int> BPlusTree<KeyType>::searchIndexLeft(KeyType key)
+{
+    vector<int> result;
+    if(!root) return result;
+    AimNode AN;
+    if (!search(root, key, AN))
+        return result; // Don't find the key in the tree;
+    else
+    {
+        TreeNode<KeyType>* Find = this->LeafHead;
+        while (AN.ANode!=Find)
+        {
+            for (int i=0; i<Find->count; i++)
+                result.emplace_back(Find->vals[i]);
+            Find = Find->NextLeaf;
+        }
+        for (int i=0; i<=AN.index; i++)
+            result.emplace_back(Find->vals[i]);
+        
+    } 
+    return result;
+}
+
 
 template <typename KeyType>
 bool BPlusTree<KeyType>::search(Node TestNode, KeyType key, AimNode& AN)
@@ -783,10 +882,9 @@ void BPlusTree<KeyType>::ReadDiskAll()
 {
     File_Node* file = bm.get_File(filePath.c_str());
     Block_Node* btmp = bm.getBlockHead(file);
-    while (btmp!=NULL)
+    while (!btmp->get_IfEnd())
     {
         ReadDiskNode(btmp);
-        if(btmp->get_IfEnd()) break;
         btmp = bm.getNextBlock(file, btmp);
     }
 }
