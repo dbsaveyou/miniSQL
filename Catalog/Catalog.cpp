@@ -132,7 +132,6 @@ int Catalog::DropTable(Drop_Table table)
     bool table_exist = Table_Exist(table.table_name);
     if (table_exist == false)
         return 21;
-    //删除
     bm.free_FileNode(table.table_name.c_str());
     vector<IndexInfo> index_temp;
     index_temp = List_AllIndex();
