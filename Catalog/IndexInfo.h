@@ -13,7 +13,8 @@ public:
     string tableName;
     string Attribute;
     int type;
-
+    IndexInfo(){};
+    ~IndexInfo(){};
     IndexInfo(string indexName, string tableName, string Attribute, int type) : indexName(indexName), tableName(tableName), Attribute(Attribute), type(type) {}
 };
 
