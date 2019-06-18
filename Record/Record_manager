@@ -1,384 +1,152 @@
-#include"record.h"
-/*
-record need api to :
-
-1: api->Table_Exist(tableName) // check table exit, bool return
-2: api->checkattributetype(record.table_name, record.values, record.types) // check attribute, bool return
-3. api->recordSizeGet(record.table_name); //get the size of record in given table
-4. api->attributeGet(record.table_name, &attributeVector); // get attribute vector in a given table
-5. api->typeSizeGet(type); // get type size of a type
-*/
-int RecordManager::Create_table(string tableName)
+#include "RecordManager.h"
+#include "IndexManager.h"
+int main(void)
 {
-	//缺少检查table是否存在的部分
-	if (api->Table_Exist(tableName) == false)//get from api/////
+	/* Catalog test for normal situation without index */
+	RecordManager rm;
+
+	cout << "Create a table named 'test' for data file, the return value: " << rm.Create_table("test") << endl;//create table : data file create
+
+	Create_Table table_test;
+	table_test.table_name = "test";
+	table_test.num_attr = 3;
+	Attribute att_temp;
+	att_temp.AttributeName = "stuid";
+	att_temp.AttributeType = 5;
+	att_temp.primarykey = false;
+	att_temp.Unique = false;
+	att_temp.withindex = false;
+	table_test.attr.push_back(att_temp);
+	att_temp.AttributeName = "name";
+	att_temp.AttributeType = 4;
+	att_temp.primarykey = true;
+	att_temp.Unique = true;
+	att_temp.withindex = true;
+	table_test.attr.push_back(att_temp);
+	att_temp.AttributeName = "age";
+	att_temp.AttributeType = -1;
+	att_temp.primarykey = false;
+	att_temp.Unique = false;
+	att_temp.withindex = false;
+	table_test.attr.push_back(att_temp);
+	// create table and success
+	int test = rm.cm.CreateTable(table_test);
+	rm.im.createIndex("TABLE_FILE_test",4);
+	cout << "Create a table named 'test', the return value: " << test << endl;
+	//rm.cm.Check_AttributeNum("test", 3);
+	/* Record insert */
+	
+	Select record_cond_sel;
+	Delete record_cond_del;
+	Insert record_ins_rec;
+	//*--------------table create --------------*/
+	
+	//cout << "Create a table named 'test' for data file, the return value: " << rm.Create_table("test") << endl;//create the exist table
+
+	//*--------------insert--------------*/
+	vector<string> values = {"0001","Ann","18"};
+	vector<int> types = { 5, 4, -1};
+	int num_value = 3;
+
+	record_ins_rec.num_value = num_value;
+	record_ins_rec.table_name = "test";	record_ins_rec.values = values;
+	record_ins_rec.types = types;
+	//rm.cm.Check_AttributeNum("test", 3);
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0002","Bob","20" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0003","June","20" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0004","Pol","21" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0005","Pul","21" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0006","Doly","21" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+	//*--------------select--------------*/
+	int op;
+	//all condition case
+	//record_cond_sel.table_name = "test";
+	//rm.select_record(record_cond_sel);
+	//Condition cond;
+
+	//one condition case
+	record_cond_sel.table_name = "test";
+	record_cond_sel.num_cond = 1;
+	Condition cond;
+	cond.col = "name";
+	cond.op = 3;
+	cond.value = "Bob";
+	cond.type = 4;
+	record_cond_sel.cond.push_back(cond);
+	rm.select_record(record_cond_sel);
+	for (int i = 0; i < rm.res.res.size(); i++)
 	{
-		string File_name = Get_table_file(tableName);
-		FILE * f;
-		f = fopen(File_name.c_str(), "w+");
-		if (f == NULL)
+		for (int j = 0; j < rm.res.res[i].size(); j++)
 		{
-			return 0;//add 0 for open file failed
-		}
-		fclose(f);
-		return 10;//success
-	}
-
-	return 11;//table exist
-
-}
-int RecordManager::Drop_table(string tableName)
-{
-	if (api->Table_Exist(tableName) == true)//get from api/////
-	{
-		string File_name = Get_table_file(tableName);
-		bm.free_FileNode(tableName.c_str());
-		if (remove(File_name.c_str()) != 0)
-		{
-			return -1;//add -1 for remove file failed
-		}
-		return 20;
-	}
-	return 21;//table not exist
-}
-
-int RecordManager::Insert_record(Insert record)
-{
-	//检查是否record的table是否存在
-	vector<Attribute> attr;
-	int flag = 0;
-	if (api->Table_Exist(record.table_name) == true)//get from api/////
-	{
-		if (api->checkattributetype(record.table_name, record.values, record.types) == true)//get from api/////
-		{
-			File_Node * file_temp = bm.get_File(Get_table_file(record.table_name).c_str());
-			Block_Node * block_temp = bm.getBlockHead(file_temp);
-			char * addr_begin;
-			string rec = "";
-			int record_size;
-
-			for (int i = 0; i < record.types.size(); i++)
-			{
-				rec += record.values[i];
-				if (record.types[i] == -1)
-				{
-					record_size += sizeof(int);
-				}
-				else if (record.types[i] == 0)
-				{
-					record_size += sizeof(float);
-				}
-				else
-				{
-					record_size += sizeof(char) * record.types[i];
-				}
-			}
-
-			while (true)
-			{
-				if (block_temp == NULL) return -1;
-				if (record_size <= block_temp->get_RemainedSize())//如果剩余的插入空间不够一条新的记录插入则寻找下一个快的开始位置插入
-				{
-					addr_begin = block_temp->get_Content() + block_temp->get_UsedSize();
-					memcpy(addr_begin, rec.c_str(), record_size);//将记录存入新的位置
-					//buffer设置
-					block_temp->set_UsedSize(block_temp->get_UsedSize() + record_size);
-					block_temp->set_Dirty(true);
-					return 50;//Success
-				}
-				else
-				{
-					block_temp = bm.getNextBlock(file_temp, block_temp);
-				}
-			}
-			return 50;//success
-		}
-		else
-		{
-			return 52;
-			//num of values doesn't match
-		}
-
-	}
-	else
-	{
-		return 51;//can't find table
-	}
-
-}
-
-int RecordManager::select_record(Select record)
-{
-	//检查是否select的table是否存在
-	if (api->Table_Exist(record.table_name) == true)//get from api/////
-	{
-		vector<string>values;
-		vector<int>types;
-		for (int i = 0; i < record.cond.size(); i++)
-		{
-			values.push_back(record.cond[i].col);
-			types.push_back(record.cond[i].type);
-
-		}
-		if (api->checkattributetype(record.table_name, values, types) == true)//get from api/////
-		{
-			File_Node * file_temp = bm.get_File(Get_table_file(record.table_name).c_str());
-			Block_Node * block_temp = bm.getBlockHead(file_temp);
-			int block_num;
-			int count;
-			while (true)
-			{
-				if (block_temp == NULL)
-				{
-					return -1;
-				}
-				if (block_temp->get_IfEnd())//判断是否读到最后一块的末尾
-				{
-					block_num = block_select(record, block_temp);
-					count += block_num;
-				}
-				else
-				{
-					block_num = block_select(record, block_temp);
-					count += block_num;
-					block_temp = bm.getNextBlock(file_temp, block_temp);//继续找下一块
-				}
-			}
-			return 60; //success
-		}
-		else
-		{
-			return 62;
-			//type of column doesn't match
-		}
-
-	}
-	else
-	{
-		return 61;//can't find table
-	}
-
-}
-
-int RecordManager::block_select_record(Select record, int blockOffset)
-{
-	File_Node * file_temp = bm.get_File(Get_table_file(record.table_name).c_str());
-	Block_Node * block_ptr = bm.getBlockByOffset(file_temp,blockOffset);//通过块偏移量寻找到对应的块
-	if (block_ptr == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		return block_select(record, block_ptr);//通过块内寻找
-	}
-}
-
-int RecordManager::block_select(Select record, Block_Node * block)
-{
-	int count = 0;
-
-	char * rec_begin = block->get_Content();
-	vector<Attribute> attributeVector;
-
-	int recordSize = api->recordSizeGet(record.table_name);//get from api
-	api->attributeGet(record.table_name, &attributeVector);//get from api
-
-
-	char * block_begin = block->get_Content();
-	size_t usingSize = block->get_UsedSize();
-
-	while (rec_begin < block_begin + usingSize)
-	{
-		if (record_match(rec_begin, recordSize, &attributeVector, &record.cond))
-		{
-			count++;//记录满足要求的记录数
-			record_save(rec_begin, recordSize);
-		}
-
-		rec_begin += recordSize;
-	}
-
-	return count;
-}
-
-int RecordManager::delete_record(Delete record)
-{
-	//检查是否select的table是否存在
-	if (api->Table_Exist(record.table_name) == true)//get from api///
-	{
-		vector<string>values;
-		vector<int>types;
-		for (int i = 0; i < record.cond.size(); i++)
-		{
-			values.push_back(record.cond[i].col);
-			types.push_back(record.cond[i].type);
-
-		}
-		if (api->checkattributetype(record.table_name, values, types) == true)//get from api///
-		{
-			File_Node * file_temp = bm.get_File(Get_table_file(record.table_name).c_str());
-			Block_Node * block_temp = bm.getBlockHead(file_temp);
-
-			int count = 0;
-			int count = 0;
-			while (true)
-			{
-				if (block_temp == NULL)
-				{
-					return -1;//空文件
-				}
-				if (block_temp->get_IfEnd())
-				{
-					int recordBlockNum = block_delete(record, block_temp);
-					count += recordBlockNum;
-					return count;
-				}
-				else
-				{
-					int recordBlockNum = block_delete(record, block_temp);
-					count += recordBlockNum;
-					block_temp = bm.getNextBlock(file_temp, block_temp);
-				}
-			}
-			return 70; //success
-		}
-		else
-		{
-			return 72;
-			//type of column doesn;t match
-		}
-
-	}
-	else
-	{
-		return 71;//can't find table
-	}
-
-
-}
-int RecordManager::delete_block_record(Delete record, int blockOffset)
-{
-	File_Node * file_temp = bm.get_File(Get_table_file(record.table_name).c_str());
-	Block_Node * block_ptr = bm.getBlockByOffset(file_temp, blockOffset);//通过块偏移量寻找到对应的块
-	if (block_ptr == NULL)
-	{
-		return -1;
-	}
-	else
-	{
-		return block_delete(record, block_ptr);//通过块内寻找
-	}
-}
-
-int RecordManager::block_delete(Delete record, Block_Node * block)
-{
-	int count = 0;
-
-	char * rec_begin = block->get_Content();
-	vector<Attribute> attributeVector;
-
-	int recordSize = api->recordSizeGet(record.table_name);//get from api//////
-	api->attributeGet(record.table_name, &attributeVector);//get from api//////
-
-	while (rec_begin - block->get_Content() < block->get_UsedSize())
-	{
-		//if the recordBegin point to a record
-
-		if (record_match(rec_begin, recordSize, &attributeVector, &record.cond))
-		{
-			count++;
-
-			api->recordIndexDelete(rec_begin, recordSize, &attributeVector, block->get_OffNum());//get from api/////
-			int i = 0;
-			for (i = 0; i + recordSize + rec_begin - block->get_Content() < block->get_UsedSize(); i++)
-			{
-				rec_begin[i] = rec_begin[i + recordSize];
-			}
-			memset(rec_begin + i, 0, recordSize);
-			block->set_UsedSize(block->get_UsedSize() - recordSize);
-			block->set_Dirty(true);
-		}
-		else
-		{
-			rec_begin += recordSize;
+			cout << rm.res.res[i][j] << " ";
 		}
 	}
+	cout << endl;
+	rm.res_pop();
+	//*--------------delete--------------*/
+	int num_cond = 1;
+	cond.col = "name";
+	cond.op = 0;
+	cond.value = "Bob";
+	cond.type = 4;
 
-	return count;
-}
+	record_cond_del.num_cond = num_value;
+	record_cond_del.table_name = "test";
+	record_cond_del.cond.push_back(cond);
+	rm.delete_record(record_cond_del);
 
+	//*--------------select--------------*/
+	//int op;
+	//all condition case
+	record_cond_sel.table_name = "test";
+	record_cond_sel.num_cond = 0;
+	record_cond_sel.cond.clear();
+	rm.select_record(record_cond_sel);
 
-
-string RecordManager::Get_table_file(string tableName)
-{
-	string tmp = "";
-	return "INDEX_FILE_" + tableName;
-}
-
-bool RecordManager::record_match(char * recordBegin, int recordSize, vector<Attribute> * attributeVector, vector<Condition> * conditionVector)
-{
-	if (conditionVector == NULL) {
-		return true;
-	}
-	int type;
-	string attributeName;
-	int typeSize;
-	char content[255];
-
-	char * contentBegin = recordBegin;
-	for (int i = 0; i < attributeVector->size(); i++)
+	//one condition case
+	//record_cond_sel.table_name = "test";
+	//record_cond_sel.num_cond = 1;
+	////Condition cond;
+	//cond.col = "name";
+	//cond.op = 0;
+	//cond.value = "Bob";
+	//cond.type = 4;
+	//record_cond_sel.cond.push_back(cond);
+	//rm.select_record(record_cond_sel);
+	for (int i = 0; i < rm.res.res.size(); i++)
 	{
-		type = (*attributeVector)[i].AttributeType;
-		attributeName = (*attributeVector)[i].AttributeName;
-		typeSize = api->typeSizeGet(type);//get from api/////
-
-		//initial content (when content is string , we can get a string easily)
-		memset(content, 0, 255);
-		memcpy(content, contentBegin, typeSize);
-		for (int j = 0; j < (* conditionVector).size(); j++)
+		for (int j = 0; j < rm.res.res[i].size(); j++)
 		{
-			if ((* conditionVector)[j].col == attributeName)
-			{
-				//if this attribute need to deal about the condition
-				if (! content_match(content, type, &(*conditionVector)[j]))
-				{
-					//if this record is not fit the conditon
-					return false;
-				}
-			}
+			cout << rm.res.res[i][j] << " ";
 		}
+	}
+	cout << endl;
+	rm.res_pop();
+	//*--------------table drop --------------*/
+	cout << "drop data file table and return : " << rm.Drop_table("test") << endl;//drop table
+	cout << "drop data file table and return : " << rm.Drop_table("test") << endl;//drop table
 
-		contentBegin += typeSize;
-	}
-	return true;
-}
 
-bool RecordManager::content_match(char * content, int type, Condition * condition)
-{
-	if (type == -1)
-	{
-		//if the content is a int
-		int temp = *((int *)content); //get content value by point
-		return condition->judge(temp);
-	}
-	else if (type == 0)
-	{
-		//if the content is a float
-		float tmp = *((float *)content); //get content value by point
-		return condition->judge(tmp);
-	}
-	else
-	{
-		//if the content is a string
-		return condition->judge(content);
-	}
-	return true;
-}
-
-void  RecordManager::record_save(char * recordBegin, int recordSize)
-{
-	char * temp;
-	memcpy(temp, recordBegin, recordSize);
-	data_vec.push_back(temp);
+	system("pause");
 }
