@@ -363,22 +363,28 @@ void IndexManager::setKey(string key, int type)
         cout << "Error: in setKey: invalid type" << endl;
 }
 
-/* 
+
 void IndexManager::CreateTable(Create_Table table)
 {
+    vector<IndexInfo> info = Catalog::List_Table_AllIndex(table.table_name);
+    for(vector<IndexInfo>::iterator i = info.begin();i != info.end();i ++)
+        createIndex(i->indexName, i->type);
 }
 void IndexManager::DropTable(Drop_Table table)
-{    
+{ 
+    vector<IndexInfo> info = Catalog::List_Table_AllIndex(table.table_name);
+    for(vector<IndexInfo>::iterator i = info.begin();i != info.end();i ++)
+        deleteIndex(i->indexName, i->type);   
 }
-void IndexManager::Create_Index(Create_Index index)
+ 
+void IndexManager::CreateIndex(Create_Index index)
 {
     IndexInfo info = Catalog::Find_index(index);
     createIndex(info.tablename, info.indexName, info.type);               //need 
 }
 
-void IndexManager::Delete_Index(Drop_Index index)
+void IndexManager::DeleteIndex(Drop_Index index)
 {
     IndexInfo info = Catalog::Find_index(index);
     dropIndex(info.tablename, info.indexname, info.type);
 }
-*/
