@@ -1,4 +1,5 @@
 
+
 #define _CRT_SECURE_NO_WARNINGS
 #include "DBFile.h"
 Block_Node::Block_Node()
@@ -62,10 +63,21 @@ bool Block_Node::get_Dirty()
 void Block_Node::set_UsedSize(size_t usedsize)
 {
 	used_size = usedsize;
+	// write size to first 4 bytes
+	memcpy(address, (char*)&used_size, sizeof(size_t));
 }
 size_t Block_Node::get_UsedSize()
 {
-	return used_size;
+	// write 
+	//if (used_size != *(size_t *)address)
+	//{
+	//	cout << "Incon" << endl;
+	//	char *p = address;
+	//	for (int i = 0; i < 4; i++)
+	//		cout << *(p + i) << endl;
+	//}
+
+	return used_size=*(size_t *)address;
 }
 void Block_Node::set_OffNum(int offnum)
 {
@@ -102,7 +114,7 @@ char *Block_Node::get_FileName()
 void Block_Node::Init()
 {
 	memset(address, 0, BLOCK_SIZE);
-	size_t init_usage = 0;
+	size_t init_usage = 4;
 	memcpy(address, (char*)&init_usage, sizeof(size_t));
 	used_size = sizeof(size_t);
 	dirty = false;
@@ -114,104 +126,106 @@ void Block_Node::Init()
 	ifendnode = false;
 	memset(filename, 0, MAX_FILE_NAME);
 }
+
 void Block_Node::WriteBack()
 {
 	if (!dirty)
 		return;
 	else
 	{
+		memcpy(address, (char*)&used_size, sizeof(size_t));
 		FILE *fileHandle = NULL;
-        if((fileHandle = fopen(filename, "rb+")) != NULL)
-        {
-            if(fseek(fileHandle, this->offsetnum*BLOCK_SIZE, 0) == 0)
-            {
-                if(fwrite(this->address, this->used_size, 1, fileHandle) != 1)
-                {
-                    printf("Problem writing the file %s in writtenBackToDisking",filename);
-                    exit(1);
-                }
-            }
-            else
-            {
-                printf("Problem seeking the file %s in writtenBackToDisking",filename);
-                exit(1);
-            }
-            fclose(fileHandle);
-        }
-        else
-        {
-            printf("Problem opening the file %s in writtenBackToDisking",filename);
-            exit(1);
-        }
-	}
-}
-	char *Block_Node::get_Content()
-	{
-		return address + sizeof(size_t);
-	}
-	int Block_Node::get_RemainedSize()
-	{
-		return BLOCK_SIZE - used_size;
-	}
-
-
-
-	File_Node::File_Node()
-	{
-		filename = new char[MAX_FILE_NAME];
-		if (NULL == filename)
+		if ((fileHandle = fopen(filename, "rb+")) != NULL)
 		{
-			cout << "Failed to allocate memory for filenode." << endl;
+			if (fseek(fileHandle, this->offsetnum*BLOCK_SIZE, 0) == 0)
+			{
+				if (fwrite(this->address, this->used_size, 1, fileHandle) != 1)
+				{
+					printf("Problem writing the file %s in writtenBackToDisking", filename);
+					exit(1);
+				}
+			}
+			else
+			{
+				printf("Problem seeking the file %s in writtenBackToDisking", filename);
+				exit(1);
+			}
+			fclose(fileHandle);
+		}
+		else
+		{
+			printf("Problem opening the file %s in writtenBackToDisking", filename);
 			exit(1);
 		}
-		Init();
 	}
-	File_Node::~File_Node()
+}
+char *Block_Node::get_Content()
+{
+	return address + sizeof(size_t);
+}
+int Block_Node::get_RemainedSize()
+{
+	return BLOCK_SIZE - used_size;
+}
+
+
+
+File_Node::File_Node()
+{
+	filename = new char[MAX_FILE_NAME];
+	if (NULL == filename)
 	{
-		delete[] filename;
+		cout << "Failed to allocate memory for filenode." << endl;
+		exit(1);
 	}
-	char *File_Node::get_FileName()
-	{
-		return filename;
-	}
-	void File_Node::set_Bhead(Block_Node *bhead)
-	{
-		blockhead = bhead;
-	}
-	Block_Node *File_Node::get_Bhead()
-	{
-		return blockhead;
-	}
-	void File_Node::set_Pfile(File_Node *pfile)
-	{
-		prefile = pfile;
-	}
-	File_Node *File_Node::get_Pfile()
-	{
-		return prefile;
-	}
-	void File_Node::set_Nfile(File_Node *nfile)
-	{
-		nextfile = nfile;
-	}
-	File_Node *File_Node::get_Nfile()
-	{
-		return nextfile;
-	}
-	void File_Node::set_Pin(bool _pin)
-	{
-		pin = _pin;
-	}
-	bool File_Node::get_Pin()
-	{
-		return pin;
-	}
-	void File_Node::Init()
-	{
-		nextfile = NULL;
-		prefile = NULL;
-		blockhead = NULL;
-		pin = false;
-		memset(filename, 0, MAX_FILE_NAME);
-	}
+	Init();
+}
+File_Node::~File_Node()
+{
+	delete[] filename;
+}
+char *File_Node::get_FileName()
+{
+	return filename;
+}
+void File_Node::set_Bhead(Block_Node *bhead)
+{
+	blockhead = bhead;
+}
+Block_Node *File_Node::get_Bhead()
+{
+	return blockhead;
+}
+void File_Node::set_Pfile(File_Node *pfile)
+{
+	prefile = pfile;
+}
+File_Node *File_Node::get_Pfile()
+{
+	return prefile;
+}
+void File_Node::set_Nfile(File_Node *nfile)
+{
+	nextfile = nfile;
+}
+File_Node *File_Node::get_Nfile()
+{
+	return nextfile;
+}
+void File_Node::set_Pin(bool _pin)
+{
+	pin = _pin;
+}
+bool File_Node::get_Pin()
+{
+	return pin;
+}
+void File_Node::Init()
+{
+	nextfile = NULL;
+	prefile = NULL;
+	blockhead = NULL;
+	pin = false;
+	memset(filename, 0, MAX_FILE_NAME);
+}
 

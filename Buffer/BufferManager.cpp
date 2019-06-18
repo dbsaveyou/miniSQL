@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include "BufferManager.h"
 #include<stdlib.h>
 #include<string>
@@ -110,158 +111,158 @@ Block_Node *BufferManager::getNextBlock(File_Node *fnode, Block_Node *bnode)
 			return getBlock(fnode, bnode);
 	}
 }
-	Block_Node *BufferManager::getBlockHead(File_Node *fnode)
+Block_Node *BufferManager::getBlockHead(File_Node *fnode)
+{
+	Block_Node *btmp = NULL;
+	if (NULL != fnode->get_Bhead())
 	{
-		Block_Node *btmp = NULL;
-		if (NULL != fnode->get_Bhead())
-		{
-			if (0 == fnode->get_Bhead())
-				fnode->set_Bhead(btmp);
-			else
-				btmp = getBlock(fnode, NULL);
-		}
+		if (0 == (fnode->get_Bhead())->get_OffNum())
+			btmp = fnode->get_Bhead();
 		else
 			btmp = getBlock(fnode, NULL);
+	}
+	else
+		btmp = getBlock(fnode, NULL);
+	return btmp;
+}
+Block_Node *BufferManager::getBlockByOffset(File_Node *fnode, int offset)
+{
+	Block_Node* btmp = NULL;
+	if (0 == offset)
+		return getBlockHead(fnode);
+	else
+	{
+		btmp = getBlockHead(fnode);
+		while (offset > -0)
+		{
+			btmp = getNextBlock(fnode, btmp);
+			offset--;
+		}
 		return btmp;
 	}
-	Block_Node *BufferManager::getBlockByOffset(File_Node *fnode, int offset)
+}
+Block_Node *BufferManager::getBlock(File_Node *fnode, Block_Node *bnodpos, bool pin)
+{
+	const char * filename = fnode->get_FileName();
+	Block_Node *btmp = NULL;
+	if (0 == num_usedblock)
 	{
-		Block_Node* btmp = NULL;
-		if (0 == offset)
-			return getBlockHead(fnode);
-		else
-		{
-			btmp = getBlockHead(fnode);
-			while (offset > -0)
-			{
-				btmp = getNextBlock(fnode, btmp);
-				offset--;
-			}
-			return btmp;
-		}
+		btmp = &block_pool[0];
+		num_usedblock++;
 	}
-	Block_Node *BufferManager::getBlock(File_Node *fnode, Block_Node *bnodpos, bool pin)
+	else if (num_usedblock < MAX_BLOCK_NUM)
 	{
-		const char * filename = fnode->get_FileName();
-		Block_Node *btmp = NULL;
-		if (0 == num_usedblock)
+		for (int i = 0; i < MAX_BLOCK_NUM; i++)
 		{
-			btmp = &block_pool[0];
-			num_usedblock++;
-		}
-		else if (num_usedblock < MAX_BLOCK_NUM)
-		{
-			for (int i = 0; i < MAX_BLOCK_NUM; i++)
+			if (-1 == block_pool[i].get_OffNum())
 			{
-				if (-1 == block_pool[i].get_OffNum())
-				{
-					btmp = &block_pool[i];
-					num_usedblock++;
-					break;
-				}
-				else
-					continue;
-			}
-		}
-		else
-		{
-			int i = replaced_block;
-			while (true)
-			{
-				i++;
-				if (i >= num_usedblock) i = 0;
-				if (!block_pool[i].get_Pin())
-				{
-					if (true == block_pool[i].get_Refer())
-						block_pool[i].set_Refer(false);
-					else
-					{
-						btmp = &block_pool[i];
-						if (btmp->get_Nblock()) (btmp->get_Nblock())->set_Pblock(btmp->get_Pblock());
-						if (btmp->get_Pblock()) (btmp->get_Pblock())->set_Nblock(btmp->get_Nblock());
-						if (btmp == fnode->get_Bhead()) fnode->set_Bhead(btmp->get_Nblock());
-						replaced_block = i;
-						btmp->WriteBack();
-						btmp->Init();
-						break;
-					}
-				}
-				else
-					continue;
-			}
-		}
-		if (bnodpos != NULL && bnodpos->get_Nblock() == NULL)
-		{
-			btmp->set_Pblock(bnodpos);
-			bnodpos->set_Nblock(btmp);
-			btmp->set_OffNum(bnodpos->get_OffNum() + 1);
-		}
-		else if (bnodpos != NULL && bnodpos->get_Nblock() != NULL)
-		{
-			btmp->set_Pblock(bnodpos);
-			btmp->set_Nblock(bnodpos->get_Nblock());
-			(bnodpos->get_Nblock())->set_Pblock(btmp);
-			bnodpos->set_Nblock(btmp);
-			btmp->set_OffNum(bnodpos->get_OffNum() + 1);
-		}
-		else
-		{
-			btmp->set_OffNum(0);
-			if (fnode->get_Bhead())
-			{
-				(fnode->get_Bhead())->set_Pblock(btmp);
-				btmp->set_Nblock(fnode->get_Bhead());
-			}
-			fnode->set_Bhead(btmp);
-		}
-		btmp->set_Pin(pin);
-		if (strlen(filename) + 1 > MAX_FILE_NAME)
-		{
-			printf("文件名长度过长\n");
-			exit(3);
-		}
-		strncpy(btmp->get_FileName(), filename, MAX_FILE_NAME);
-
-		FILE *fileHandle;
-		if ((fileHandle = fopen(filename, "ab+")) != NULL)
-		{
-			if (fseek(fileHandle, (btmp->get_OffNum() * BLOCK_SIZE), 0) == 0)
-			{
-				if (fread(btmp->get_Address(), 1, BLOCK_SIZE, fileHandle) == 0)
-					btmp->set_IfEnd(true);
-				btmp->set_UsedSize(btmp->get_UsedSize());
+				btmp = &block_pool[i];
+				num_usedblock++;
+				break;
 			}
 			else
+				continue;
+		}
+	}
+	else
+	{
+		int i = replaced_block;
+		while (true)
+		{
+			i++;
+			if (i >= num_usedblock) i = 0;
+			if (!block_pool[i].get_Pin())
 			{
-				printf("Problem seeking the file %s in reading", filename);
-				exit(1);
+				if (true == block_pool[i].get_Refer())
+					block_pool[i].set_Refer(false);
+				else
+				{
+					btmp = &block_pool[i];
+					if (btmp->get_Nblock()) (btmp->get_Nblock())->set_Pblock(btmp->get_Pblock());
+					if (btmp->get_Pblock()) (btmp->get_Pblock())->set_Nblock(btmp->get_Nblock());
+					if (btmp == fnode->get_Bhead()) fnode->set_Bhead(btmp->get_Nblock());
+					replaced_block = i;
+					btmp->WriteBack();
+					btmp->Init();
+					break;
+				}
 			}
-			fclose(fileHandle);
+			else
+				continue;
+		}
+	}
+	if (bnodpos != NULL && bnodpos->get_Nblock() == NULL)
+	{
+		btmp->set_Pblock(bnodpos);
+		bnodpos->set_Nblock(btmp);
+		btmp->set_OffNum(bnodpos->get_OffNum() + 1);
+	}
+	else if (bnodpos != NULL && bnodpos->get_Nblock() != NULL)
+	{
+		btmp->set_Pblock(bnodpos);
+		btmp->set_Nblock(bnodpos->get_Nblock());
+		(bnodpos->get_Nblock())->set_Pblock(btmp);
+		bnodpos->set_Nblock(btmp);
+		btmp->set_OffNum(bnodpos->get_OffNum() + 1);
+	}
+	else
+	{
+		btmp->set_OffNum(0);
+		if (fnode->get_Bhead())
+		{
+			(fnode->get_Bhead())->set_Pblock(btmp);
+			btmp->set_Nblock(fnode->get_Bhead());
+		}
+		fnode->set_Bhead(btmp);
+	}
+	btmp->set_Pin(pin);
+	if (strlen(filename) + 1 > MAX_FILE_NAME)
+	{
+		printf("文件名长度过长\n");
+		exit(3);
+	}
+	strncpy(btmp->get_FileName(), filename, MAX_FILE_NAME);
+
+	FILE *fileHandle;
+	if ((fileHandle = fopen(filename, "ab+")) != NULL)
+	{
+		if (fseek(fileHandle, (btmp->get_OffNum() * BLOCK_SIZE), 0) == 0)
+		{
+			if (fread(btmp->get_Address(), 1, BLOCK_SIZE, fileHandle) == 0)
+				btmp->set_IfEnd(true);
+			btmp->set_UsedSize(btmp->get_UsedSize());
 		}
 		else
 		{
-			printf("Problem opening the file %s in reading", filename);
+			printf("Problem seeking the file %s in reading", filename);
 			exit(1);
 		}
-		return btmp;
+		fclose(fileHandle);
 	}
-	void BufferManager::WriteAllBack()
+	else
 	{
-		Block_Node *btmp = NULL;
-		File_Node *ftmp = NULL;
-		if (filehead)
+		printf("Problem opening the file %s in reading", filename);
+		exit(1);
+	}
+	return btmp;
+}
+void BufferManager::WriteAllBack()
+{
+	Block_Node *btmp = NULL;
+	File_Node *ftmp = NULL;
+	if (filehead)
+	{
+		for (ftmp = filehead; ftmp != NULL; ftmp = ftmp->get_Nfile())
 		{
-			for (ftmp = filehead; ftmp != NULL; ftmp = ftmp->get_Nfile())
+			if (ftmp->get_Bhead())
 			{
-				if (ftmp->get_Bhead())
+				for (btmp = ftmp->get_Bhead(); btmp != NULL; btmp = btmp->get_Nblock())
 				{
-					for (btmp = ftmp->get_Bhead(); btmp != NULL; btmp = btmp->get_Nblock())
-					{
-						if (btmp->get_Pblock())
-							(btmp->get_Pblock())->Init();
-						btmp->WriteBack();
-					}
+					if (btmp->get_Pblock())
+						(btmp->get_Pblock())->Init();
+					btmp->WriteBack();
 				}
 			}
 		}
 	}
+}

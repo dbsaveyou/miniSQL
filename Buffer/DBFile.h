@@ -5,6 +5,11 @@
 #define MAX_BLOCK_NUM 300
 #define MAX_FILE_NAME 100
 #include<iostream>
+#include<stdlib.h>
+#include<string>
+#include<cstring>
+#include<fstream>
+
 using namespace std;
 class Block_Node
 {
