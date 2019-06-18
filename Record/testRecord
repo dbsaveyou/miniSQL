@@ -60,7 +60,7 @@ int main(void)
 	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
 
 	record_ins_rec.table_name = "test";
-	values = { "0003","June","20" };
+	values = { "0003","Jun","20" };
 	record_ins_rec.values = values;
 	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
 
@@ -75,7 +75,7 @@ int main(void)
 	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
 
 	record_ins_rec.table_name = "test";
-	values = { "0006","Doly","21" };
+	values = { "0006","Dol","21" };
 	record_ins_rec.values = values;
 	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
 	//*--------------select--------------*/
