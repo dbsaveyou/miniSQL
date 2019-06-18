@@ -1,0 +1,152 @@
+#include "RecordManager.h"
+#include "IndexManager.h"
+int main(void)
+{
+	/* Catalog test for normal situation without index */
+	RecordManager rm;
+
+	cout << "Create a table named 'test' for data file, the return value: " << rm.Create_table("test") << endl;//create table : data file create
+
+	Create_Table table_test;
+	table_test.table_name = "test";
+	table_test.num_attr = 3;
+	Attribute att_temp;
+	att_temp.AttributeName = "stuid";
+	att_temp.AttributeType = 5;
+	att_temp.primarykey = false;
+	att_temp.Unique = false;
+	att_temp.withindex = false;
+	table_test.attr.push_back(att_temp);
+	att_temp.AttributeName = "name";
+	att_temp.AttributeType = 4;
+	att_temp.primarykey = true;
+	att_temp.Unique = true;
+	att_temp.withindex = true;
+	table_test.attr.push_back(att_temp);
+	att_temp.AttributeName = "age";
+	att_temp.AttributeType = -1;
+	att_temp.primarykey = false;
+	att_temp.Unique = false;
+	att_temp.withindex = false;
+	table_test.attr.push_back(att_temp);
+	// create table and success
+	int test = rm.cm.CreateTable(table_test);
+	rm.im.createIndex("TABLE_FILE_test",4);
+	cout << "Create a table named 'test', the return value: " << test << endl;
+	//rm.cm.Check_AttributeNum("test", 3);
+	/* Record insert */
+	
+	Select record_cond_sel;
+	Delete record_cond_del;
+	Insert record_ins_rec;
+	//*--------------table create --------------*/
+	
+	//cout << "Create a table named 'test' for data file, the return value: " << rm.Create_table("test") << endl;//create the exist table
+
+	//*--------------insert--------------*/
+	vector<string> values = {"0001","Ann","18"};
+	vector<int> types = { 5, 4, -1};
+	int num_value = 3;
+
+	record_ins_rec.num_value = num_value;
+	record_ins_rec.table_name = "test";	record_ins_rec.values = values;
+	record_ins_rec.types = types;
+	//rm.cm.Check_AttributeNum("test", 3);
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0002","Bob","20" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0003","June","20" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0004","Pol","21" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0005","Pul","21" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+
+	record_ins_rec.table_name = "test";
+	values = { "0006","Doly","21" };
+	record_ins_rec.values = values;
+	cout << "Insert into table named 'test', the return value: " << rm.Insert_record(record_ins_rec) << endl;
+	//*--------------select--------------*/
+	int op;
+	//all condition case
+	//record_cond_sel.table_name = "test";
+	//rm.select_record(record_cond_sel);
+	//Condition cond;
+
+	//one condition case
+	record_cond_sel.table_name = "test";
+	record_cond_sel.num_cond = 1;
+	Condition cond;
+	cond.col = "name";
+	cond.op = 3;
+	cond.value = "Bob";
+	cond.type = 4;
+	record_cond_sel.cond.push_back(cond);
+	rm.select_record(record_cond_sel);
+	for (int i = 0; i < rm.res.res.size(); i++)
+	{
+		for (int j = 0; j < rm.res.res[i].size(); j++)
+		{
+			cout << rm.res.res[i][j] << " ";
+		}
+	}
+	cout << endl;
+	rm.res_pop();
+	//*--------------delete--------------*/
+	int num_cond = 1;
+	cond.col = "name";
+	cond.op = 0;
+	cond.value = "Bob";
+	cond.type = 4;
+
+	record_cond_del.num_cond = num_value;
+	record_cond_del.table_name = "test";
+	record_cond_del.cond.push_back(cond);
+	rm.delete_record(record_cond_del);
+
+	//*--------------select--------------*/
+	//int op;
+	//all condition case
+	record_cond_sel.table_name = "test";
+	record_cond_sel.num_cond = 0;
+	record_cond_sel.cond.clear();
+	rm.select_record(record_cond_sel);
+
+	//one condition case
+	//record_cond_sel.table_name = "test";
+	//record_cond_sel.num_cond = 1;
+	////Condition cond;
+	//cond.col = "name";
+	//cond.op = 0;
+	//cond.value = "Bob";
+	//cond.type = 4;
+	//record_cond_sel.cond.push_back(cond);
+	//rm.select_record(record_cond_sel);
+	for (int i = 0; i < rm.res.res.size(); i++)
+	{
+		for (int j = 0; j < rm.res.res[i].size(); j++)
+		{
+			cout << rm.res.res[i][j] << " ";
+		}
+	}
+	cout << endl;
+	rm.res_pop();
+	//*--------------table drop --------------*/
+	cout << "drop data file table and return : " << rm.Drop_table("test") << endl;//drop table
+	cout << "drop data file table and return : " << rm.Drop_table("test") << endl;//drop table
+
+
+	system("pause");
+}
