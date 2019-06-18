@@ -106,61 +106,6 @@ bool TreeNode<KeyType>::search(KeyType key, int& index)
 {
     if (count == 0)
         return false;
-    /*
-    if (key == 0)
-    {
-        index = count-1;
-        return true;
-    }
-    */
-    /* 
-    if (typeid(key)==typeid(float))
-    {
-        float e = 0.00001;
-        if (key[count-1]<float(key)+e)
-        {
-            index=count;
-            return false;   
-        }
-         else if (keys[0]>float(key)+e)
-        {
-            index = 0;
-            return false;
-        }
-        else //binary search
-        {
-            int left = 0, pos = 0, right = count - 1;
-            while (right>left+1)
-            {
-                pos = (right + left) / 2;
-                if(keys[pos] - float(key) < e)
-                {
-                    index = pos;
-                    return true;
-                }
-                else if(keys[pos] < float(key) + e)
-                    left = pos;
-                else if(keys[pos] > float(key) + e)
-                    right = pos;
-            }
-            if(keys[left] >= float(key) - e)
-            {
-                index = left;
-                return (keys[pos] - float(key) < e);
-            }
-            else if(keys[right] >= float(key) - e)
-            {
-                index = right;
-                return (keys[pos] - float(key) < e);
-            }
-            else if(keys[right] < float(key) - e)
-            {
-                index = right++;
-                return false;
-            }
-        }
-    }
-    */
     else
     {
         if (keys[count-1]<key)
@@ -397,6 +342,7 @@ BPlusTree<KeyType>::BPlusTree(string filePath, int KeySize, int degree):KeyNum(0
 template <class KeyType>
 BPlusTree<KeyType>:: ~BPlusTree()
 {
+    WriteDisk();
     dropTree(root);
     KeyNum = 0;
     root = NULL;
@@ -892,17 +838,6 @@ void BPlusTree<KeyType>::ReadDiskAll()
 template <class KeyType>
 void BPlusTree<KeyType>::WriteDisk()
 {
-    /* 
-    string tablename = filePath.c_str(); 
-    tablename = "index_" + tablename;
-    if (typeid(tablename) == typeid(int))
-        tablename = "int_" + tablename;
-    else if (typeid(tablename) == typeid(float))
-        tablename = "float_" + tablename;
-    else if (typeid(tablename) == typeid(string))
-        tablename = "string_" + tablename;
-    else {};
-    */  
     File_Node* file = bm.get_File(filePath.c_str());
     Block_Node* btmp = bm.getBlockHead(file);
     Node ntmp = this->LeafHead;
@@ -922,7 +857,7 @@ void BPlusTree<KeyType>::WriteDisk()
         }
 
         btmp = bm.getNextBlock(file, btmp);
-        ntmp = ntmp->nextLeafNode;
+        ntmp = ntmp->NextLeaf;
     }
     while(1)// delete the empty node
     {
