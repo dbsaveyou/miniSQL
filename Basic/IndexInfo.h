@@ -1,5 +1,5 @@
-#ifndef IndexManager_h 
-#define IndexManager_h
+#ifndef INDEXINFO_H 
+#define INDEXINFO_H
 #include <string>
 #include <stdio.h>
 #include <map>

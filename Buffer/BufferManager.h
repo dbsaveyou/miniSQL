@@ -18,9 +18,8 @@ public:
 	BufferManager();
 	~BufferManager();
 	void free_FileNode(const char *filename);
-	// Get File
-	File_Node *get_File(const char *filename, bool pin = false);
-	// Get Block from File
+	File_Node *get_File(const char *filename, bool pin = false); // Get File 
+	/* Get Block from File */
 	Block_Node *getNextBlock(File_Node *fnode, Block_Node *bnode);
 	Block_Node *getBlockHead(File_Node *fnode);
 	Block_Node *getBlockByOffset(File_Node *fnode, int offset);

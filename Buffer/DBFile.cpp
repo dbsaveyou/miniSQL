@@ -1,5 +1,6 @@
 
 
+
 #define _CRT_SECURE_NO_WARNINGS
 #include "DBFile.h"
 Block_Node::Block_Node()
@@ -77,7 +78,7 @@ size_t Block_Node::get_UsedSize()
 	//		cout << *(p + i) << endl;
 	//}
 
-	return used_size=*(size_t *)address;
+	return used_size = *(size_t *)address;
 }
 void Block_Node::set_OffNum(int offnum)
 {
@@ -167,7 +168,14 @@ int Block_Node::get_RemainedSize()
 {
 	return BLOCK_SIZE - used_size;
 }
-
+void Block_Node::Set_Zero()
+{
+	memset(address, 0, BLOCK_SIZE);
+	size_t init_usage = 4;
+	memcpy(address, (char*)&init_usage, sizeof(size_t));
+	used_size = sizeof(size_t);
+	dirty = true;
+}
 
 
 File_Node::File_Node()

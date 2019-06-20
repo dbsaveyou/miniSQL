@@ -1,23 +1,24 @@
+#pragma once
 #ifndef TRANS_CLASS_H  
 #define TRANS_CLASS_H
 #include<vector>
 #include<string>
+using namespace std;
 class Attribute {
 public:
-	Attribute() {};
-	~Attribute() {};
+	Attribute();
+	~Attribute();
 
 	string AttributeName;
 	int AttributeType; //-1->int,0->float,1~255->char
 	bool Unique;//true->unique
 	bool primarykey;//true->pk
-	bool withindex;//true->index
+	bool withindex;//true->index	
 
 };
 class Table {
 public:
-	Table() {};
-	~Table() {};
+	Table();
 
 	string TableName;
 	vector<Attribute> Attr;
@@ -45,6 +46,7 @@ public:
 	bool judge(string content);
 
 	Condition(string a, string v, int o, int t);
+	Condition();
 };
 // Cmd Here
 class Create_Table
@@ -53,6 +55,7 @@ public:
 	string table_name;
 	int num_attr;   // num of attribute
 	vector<Attribute> attr;
+	Create_Table();
 };
 class Drop_Table
 {
@@ -74,6 +77,7 @@ public:
 class Insert
 {
 public:
+	Insert();
 	string table_name;
 	int num_value;
 	vector<string> values;
@@ -82,6 +86,7 @@ public:
 class Select
 {
 public:
+	Select();
 	string table_name;
 	int num_cond; // num of condition
 	vector<Condition> cond;
@@ -89,31 +94,35 @@ public:
 class Delete
 {
 public:
+	Delete();
 	string table_name;
 	int num_cond;
 	vector<Condition> cond;
 };
-class Trans_in
-{
-public:
-	int id;
-	Create_Table *create_table;     // id=0
-	Drop_Table *drop_table;         // id=1
-	Create_Index *create_index;     // id=2
-	Drop_Index *drop_index;         // id=3
-	Insert *insert;                 // id=4
-	Select *select;                 // id=5
-	Delete *deletee;                // id=6
-	Trans_in(int code = -1) :id(code) {}
-	~Trans_in() {}
-};
 class Select_Res
 {
 public:
+	Select_Res();
 	int num_attr;
 	vector<Attribute> attr;
 	int num_tuple;
 	vector< vector<string> > res;
 	// use push_back to add 
 };
+class Trans_in
+{
+public:
+	int id;
+	Select_Res sres;
+	Create_Table create_table;     // id=0
+	Drop_Table drop_table;         // id=1
+	Create_Index create_index;     // id=2
+	Drop_Index drop_index;         // id=3
+	Insert insert;                 // id=4
+	Select select;                 // id=5
+	Delete deletee;                // id=6
+	Trans_in(int code = -1) :id(code) {}
+	~Trans_in() {}
+};
+
 #endif

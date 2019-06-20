@@ -1,23 +1,22 @@
+
 #ifndef RECORD_H
 #define RECORD_H
+#include <fstream>
+#include <sstream>
 #include "BufferManager.h"
 #include "Catalog.h"
 #include "Basic.h"
-#include <fstream>
-#include <sstream>
+#include "API.h"
 #include "IndexManager.h"
 using namespace std;
-class API;
 
-class RecordManager{
+class RecordManager {
 public:
 
 	Select_Res res;
 	vector<string>Table;
 	BufferManager bm;
-	Catalog cm;
 	API * api;
-	IndexManager im;
 	void res_pop()
 	{
 		res.res.clear();
@@ -25,24 +24,19 @@ public:
 	}
 	int Create_table(string tableName);
 	int Drop_table(string tableName);
-
 	int Insert_record(Insert record);
-
 	int select_record(Select record);
 	int block_select_record(Select record, int blockOffset);
-
-
 	int delete_record(Delete record);
 	int delete_block_record(Delete record, int blockOffset);
 
 
 	string Get_table_file(string tableName);
-	RecordManager() { res.res.clear();}
+	RecordManager(API *api) { res.res.clear(); this->api = api; }
 	~RecordManager() {}
 
 private:
 
-	//IndexManager im;
 	int block_select(Select record, Block_Node* block);
 	int block_delete(Delete record, Block_Node* block);
 
@@ -52,18 +46,32 @@ private:
 	void record_save(string table_name, char * recordBegin, int recordSize);
 	bool Table_Exist(string table_name)
 	{
-		return cm.Table_Exist(table_name);
+		return api->cm->Table_Exist(table_name);
 	}
 	bool checkattributetype(string table_name, vector<string>values, vector<int>types, int states)//state 0 insert; place for cond attr in table
 	{
-		vector<Attribute> tmp = cm.List_TableAttributes(table_name);
-		if (states == 0)
+		vector<Attribute> tmp = api->cm->List_TableAttributes(table_name);
+		if (states == -1)
 		{
-			if (cm.Check_AttributeNum(table_name, values.size()) == false) return false;
+			if (api->cm->Check_AttributeNum(table_name, values.size()) == false) return false;
 			for (int i = 0; i < values.size(); i++)
 			{
-				if (types[i] != tmp[i].AttributeType)
-					return false;
+				switch (types[i])
+				{
+				case -1:
+					if (types[i] != tmp[i].AttributeType)
+						return false;
+					break;
+				case 0:
+					if (types[i] != tmp[i].AttributeType)
+						return false;
+					break;
+				default:
+					if (types[i] > tmp[i].AttributeType)
+						return false;
+					break;
+
+				}
 			}
 			return true;
 		}
@@ -71,18 +79,32 @@ private:
 		{
 			for (int i = 0; i < types.size(); i++)
 			{
-				if (types[i] == tmp[states].AttributeType) return true;
+				switch (types[i])
+				{
+				case -1:
+					if (types[i] != tmp[states].AttributeType)
+						return false;
+					break;
+				case 0:
+					if (types[i] != tmp[states].AttributeType)
+						return false;
+					break;
+				default:
+					if (types[i] > tmp[states].AttributeType)
+						return false;
+					break;
+				}
 			}
-			return false;
+			return true;
 		}
 
-		
+
 	}
 	int recordSizeGet(string table_name)
 	{
 		vector<Attribute>tmp;
 		int size = 0;
-		tmp = cm.List_TableAttributes(table_name);
+		tmp = api->cm->List_TableAttributes(table_name);
 		for (int i = 0; i < tmp.size(); i++)
 		{
 			size += typeSizeGet(tmp[i].AttributeType);
@@ -92,7 +114,7 @@ private:
 	vector<Attribute>attributeGet(string table_name)
 	{
 		vector<Attribute>tmp;
-		tmp = cm.List_TableAttributes(table_name);
+		tmp = api->cm->List_TableAttributes(table_name);
 		return tmp;
 	}
 	int  typeSizeGet(int type)
@@ -109,4 +131,3 @@ private:
 	}
 };
 #endif // !RECORD_H
-

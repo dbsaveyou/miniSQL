@@ -7,7 +7,9 @@
 #include<queue>
 extern int replaced_block;
 BufferManager::BufferManager() :num_usedblock(0), num_usedfile(0), filehead(NULL) {}
-BufferManager::~BufferManager() { WriteAllBack(); }
+BufferManager::~BufferManager() {
+	WriteAllBack();
+}
 void BufferManager::free_FileNode(const char *filename)
 {
 	File_Node *ftmp = get_File(filename);
@@ -22,7 +24,8 @@ void BufferManager::free_FileNode(const char *filename)
 	num_usedblock -= blockQ.size();
 	while (!blockQ.empty())
 	{
-		blockQ.back()->Init();
+		blockQ.front()->Set_Zero();
+		blockQ.front()->WriteBack();
 		blockQ.pop();
 	}
 	if (ftmp->get_Pfile()) (ftmp->get_Pfile())->set_Nfile(ftmp->get_Nfile());
@@ -56,10 +59,30 @@ File_Node *BufferManager::get_File(const char *filename, bool pin)
 	}
 	else if (num_usedfile < MAX_FILE_NUM) // There are empty File_Node in the pool
 	{
-		ftmp = &file_pool[num_usedfile];
+		//ftmp = &file_pool[num_usedfile];
 		// add this File_Node into the tail of the list
-		file_pool[num_usedfile - 1].set_Nfile(ftmp);
-		ftmp->set_Pfile(&file_pool[num_usedfile - 1]);
+		//file_pool[num_usedfile - 1].set_Nfile(ftmp);
+		//ftmp->set_Pfile(&file_pool[num_usedfile - 1]);
+		//num_usedfile++;
+		//----------------------------//
+		for (int i = 0; i < MAX_FILE_NUM; i++)
+		{
+			if (file_pool[i].get_Pfile() == NULL && file_pool[i].get_Nfile() == NULL)
+			{
+				if (*(file_pool[i].get_FileName())=='\0')
+				{
+					ftmp = &file_pool[i];
+					File_Node *p;
+					for (p = filehead; p->get_Nfile() != NULL; p = p->get_Nfile())
+						;
+					p->set_Nfile(ftmp);
+					ftmp->set_Pfile(p);
+					ftmp->set_Nfile(NULL);
+					break;
+				}
+				
+			}
+		}
 		num_usedfile++;
 	}
 	else // if num_usedfile >= MAX_FILE_NUM, find one File_Node to replace, write back the block node belonging to the File_Node
@@ -228,8 +251,13 @@ Block_Node *BufferManager::getBlock(File_Node *fnode, Block_Node *bnodpos, bool 
 	{
 		if (fseek(fileHandle, (btmp->get_OffNum() * BLOCK_SIZE), 0) == 0)
 		{
-			if (fread(btmp->get_Address(), 1, BLOCK_SIZE, fileHandle) == 0)
+			int retu = fread(btmp->get_Address(), 1, BLOCK_SIZE, fileHandle);
+
+			if (retu == 0)
+			{
 				btmp->set_IfEnd(true);
+			}
+			//cout << retu << endl;
 			btmp->set_UsedSize(btmp->get_UsedSize());
 		}
 		else

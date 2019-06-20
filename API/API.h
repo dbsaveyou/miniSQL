@@ -1,6 +1,6 @@
 #ifndef API_H
 #define API_H
-#include<Basic.h>
+#include"Basic.h"
 /* Error Code Here
  * ------>Create_Table
  *  10 Success.
@@ -28,25 +28,26 @@
  *  70 Success.
  *  71 Can't find table.
  */
-
+class RecordManager;
+class IndexManager;
+class Catalog;
 class API
 {
     public:
         int code;
         Select_Res *select_res;
         RecordManager *rm;
-        CatalogManager *cm;
+        Catalog *cm;
         IndexManager *im;
 
 
 
-        API(int tcode):code(tcode){}
-        ~API(){}
+		API(int tcode = -1);
+		~API();
         int Deal_Trans(Trans_in& tmp);
         /* 
          * Function to deal Trans_in(res) from Interpreter 
          * And set Select_Res(select_res)
          */
-}
-
+};
 #endif 

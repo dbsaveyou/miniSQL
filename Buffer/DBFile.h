@@ -51,6 +51,7 @@ public:
 	void set_FileName(char *filename);
 	char *get_FileName();
 	//--->
+	void Set_Zero();
 	void Init();
 	void WriteBack();
 	char *get_Content();
